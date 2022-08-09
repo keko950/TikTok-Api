@@ -99,17 +99,17 @@ class User:
             cookies=User.parent._get_cookies(**kwargs),
             **User.parent._requests_extra_kwargs,
         )
-
+        
         data = extract_tag_contents(r.text)
         user = json.loads(data)
 
-        user_props = user["props"]["pageProps"]
-        if user_props["statusCode"] == 404:
+        user_props = user["MobileUserModule"]["users"]
+        if quoted_username not in user_props:
             raise NotFoundException(
                 "TikTok user with username {} does not exist".format(self.username)
             )
 
-        return user_props["userInfo"]
+        return user_props[quoted_username]
 
         """
         TODO: There is a route for user info, but uses msToken :\
@@ -148,13 +148,11 @@ class User:
         """
         processed = User.parent._process_kwargs(kwargs)
         kwargs["custom_device_id"] = processed.device_id
-
         if not self.user_id and not self.sec_uid:
             self.__find_attributes()
-
         first = True
         amount_yielded = 0
-
+        
         while amount_yielded < count:
             query = {
                 "count": 30,
@@ -171,13 +169,13 @@ class User:
             path = "api/post/item_list/?{}&{}".format(
                 User.parent._add_url_params(), urlencode(query)
             )
-
+            
             res = User.parent.get_data(path, send_tt_params=True, **kwargs)
-
             videos = res.get("itemList", [])
             for video in videos:
                 amount_yielded += 1
-                yield self.parent.video(data=video)
+                #yield self.parent.video(data=video)
+                yield video
 
             if not res.get("hasMore", False) and not first:
                 User.parent.logger.info(
@@ -284,7 +282,6 @@ class User:
                 found = True
                 self.__update_id_sec_uid_username(u.user_id, u.sec_uid, u.username)
                 break
-
         if not found:
             user_object = self.info()
             self.__update_id_sec_uid_username(
