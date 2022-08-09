@@ -8,29 +8,17 @@ import requests
 
 
 def extract_tag_contents(html):
-    next_json = re.search(
-        r"id=\"__NEXT_DATA__\"\s+type=\"application\/json\"\s*[^>]+>\s*(?P<next_data>[^<]+)",
-        html,
-    )
-    if next_json:
-        nonce_start = '<head nonce="'
-        nonce_end = '">'
-        nonce = html.split(nonce_start)[1].split(nonce_end)[0]
-        j_raw = html.split(
-            '<script id="__NEXT_DATA__" type="application/json" nonce="%s" crossorigin="anonymous">'
-            % nonce
-        )[1].split("</script>")[0]
+    if "__NEXT_DATA__" in html:
+        j_raw = html.split('<script id="__NEXT_DATA__" type="application\/json" nonce="[\w-]+" crossorigin="anonymous">')[1].split("</script>")[0]
         return j_raw
     else:
-        sigi_json = re.search(
-            r'>\s*window\[[\'"]SIGI_STATE[\'"]\]\s*=\s*(?P<sigi_state>{.+});', html
-        )
-        if sigi_json:
-            return sigi_json.group(1)
-        else:
+        try:
+            splitted = html.split('<script id="SIGI_STATE" type="application/json">')[1].split('</script>')[0]
+            return splitted
+        except:
             raise CaptchaException(0, None,
-                "TikTok blocks this request displaying a Captcha \nTip: Consider using a proxy or a custom_verify_fp as method parameters"
-            )
+            "TikTok blocks this request displaying a Captcha \nTip: Consider using a proxy or a custom_verify_fp as method parameters"
+        )
 
 
 def extract_video_id_from_url(url, headers={}):
